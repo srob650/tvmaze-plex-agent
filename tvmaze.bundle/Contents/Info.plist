@@ -5,7 +5,14 @@
         <key>CFBundleIdentifier</key>
         <string>com.plexapp.agents.tvmaze</string>
         <key>PlexAgentAttributionText</key>
-        <string>&lt;a href=&quot;http://www.tvmaze.com&quot;&gt;TVMaze.com&lt;/a&gt; is your number one source for TV information.</string>
+        <string>TVmaze.com is a one stop database and management tool for TV fanatics.
+        &lt;br/&gt;&lt;br/&gt;
+
+        The data on TVmaze is updated daily by the community to provide you with detailed network, show, episode, cast and character information.
+        &lt;br/&gt;&lt;br/&gt;
+
+        For more info check out: &lt;a href=&quot;http://www.tvmaze.com/site/features&quot;&gt;http://www.tvmaze.com/site/features&lt;/a&gt;
+        </string>
         <key>PlexFrameworkVersion</key>
         <string>2</string>
         <key>PlexPluginClass</key>
