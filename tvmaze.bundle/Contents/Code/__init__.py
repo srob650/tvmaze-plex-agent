@@ -67,7 +67,7 @@ class TVMazeAgent(Agent.TV_Shows):
                     Log.Debug('{lang} ({code})'.format(lang=show.language,
                                                        code=lang_code))
                 else:
-                    lang_code = Locale.Language.English
+                    lang_code = lang
 
                 # Scale scores
                 if len(scores) > 1:
