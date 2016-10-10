@@ -81,3 +81,54 @@ class ConnectionError(BaseError):
 
 class BadRequest(BaseError):
     pass
+
+
+class NoFollowedShows(BaseError):
+    pass
+
+
+class ShowNotFollowed(BaseError):
+    pass
+
+
+class NoFollowedPeople(BaseError):
+    pass
+
+
+class PersonNotFollowed(BaseError):
+    pass
+
+
+class NoMarkedEpisodes(BaseError):
+    pass
+
+
+class EpisodeNotMarked(BaseError):
+    pass
+
+class InvalidMarkedEpisodeType(BaseError):
+    pass
+
+class InvalidEmbedValue(BaseError):
+    pass
+
+class NetworkNotFollowed(BaseError):
+    pass
+
+class NoFollowedWebChannels(BaseError):
+    pass
+
+class NoVotedShows(BaseError):
+    pass
+
+class ShowNotVotedFor(BaseError):
+    pass
+
+class InvalidVoteValue(BaseError):
+    pass
+
+class NoVotedEpisodes(BaseError):
+    pass
+
+class EpisodeNotVotedFor(BaseError):
+    pass

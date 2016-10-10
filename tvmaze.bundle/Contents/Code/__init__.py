@@ -12,6 +12,7 @@ SUPPORTED_LANGUAGES = [
     'ko', 'no', 'fa', 'pl', 'pt', 'ro', 'ru', 'sr', 'es', 'sv', 'tl', 'th',
     'tr', 'uk', 'ur', 'cy']
 
+
 def Start():
     Log.Debug("Starting TVMaze Agent")
 
@@ -59,8 +60,6 @@ class TVMazeAgent(Agent.TV_Shows):
             for show in shows:
                 Log.Debug(media.show)
                 Log.Debug(show.name + ' ' + str(show.maze_id))
-                Log.Debug(media.season)
-                Log.Debug(media.episode)
 
                 if show.language:
                     lang_code = Locale.Language.Match(show.language)
@@ -90,7 +89,8 @@ class TVMazeAgent(Agent.TV_Shows):
         Log.Debug('Update() called...')
 
         # Get main show info
-        show = pytvmaze.get_show(maze_id=int(metadata.id), embed='episodes')
+        tvm = pytvmaze.TVMaze()
+        show = tvm.get_show(maze_id=int(metadata.id), embed='episodes')
         if show:
             metadata.title = show.name
             metadata.summary = show.summary
@@ -105,6 +105,7 @@ class TVMazeAgent(Agent.TV_Shows):
                     metadata.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
 
         # Get Season posters they exist
+        Log.Debug(media.seasons)
         Log.Debug('SEASONS: ' + str(media.seasons.keys()))
         for season_num in media.seasons.keys():
             Log.Debug('SEASON: ' + season_num)
