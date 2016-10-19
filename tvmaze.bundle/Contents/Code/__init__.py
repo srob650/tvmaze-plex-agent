@@ -51,7 +51,6 @@ class TVMazeAgent(Agent.TV_Shows):
 
     def search(self, results, media, lang, manual):
         Log.Debug("Search with TVMazeAgent: " + media.show)
-        Log.Debug('Searching tvmaze...')
         shows = pytvmaze.get_show_list(media.show)
         if shows:
             scores = [show.score for show in shows]
@@ -95,13 +94,6 @@ class TVMazeAgent(Agent.TV_Shows):
         metadata.title = show.name
         metadata.summary = show.summary
 
-        # Log.Debug('Metadata: {}'.format(str(metadata)))
-        # Log.Debug('Metadata Dir: {}'.format(str(dir(metadata))))
-        # Log.Debug('Metadata Provider: {}'.format(metadata.provider))
-        # Log.Debug('Media: {}'.format(str(media)))
-        # Log.Debug('Media Dir: {}'.format(str(dir(media))))
-
-
         # Get poster if it exists
         if show.image:
             if show.image.get('medium'):
@@ -110,7 +102,6 @@ class TVMazeAgent(Agent.TV_Shows):
             if show.image.get('original'):
                 orig_url = show.image.get('original')
                 metadata.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
-
 
         # Get season posters they exist
         seasons = pytvmaze.show_seasons(int(metadata.id))
