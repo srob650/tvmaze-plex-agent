@@ -69,7 +69,7 @@ class TVMazeAgent(Agent.TV_Shows):
                 if len(scores) > 1:
                     new_score = ((99 * (show.score - min(scores))) / (max(scores) - min(scores))) + 1
                 else:
-                    new_score = 100
+                    new_score = scores[0]
 
                 results.Append(MetadataSearchResult(
                     id = str(show.maze_id),
