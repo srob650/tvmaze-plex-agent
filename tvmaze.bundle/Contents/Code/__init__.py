@@ -133,8 +133,8 @@ class TVMazeAgent(Agent.TV_Shows):
             episode.show = show.name
             episode.title = ep.title
             episode.summary = ep.summary
-            episode.index = episode_num
-            episode.season = season_num
+            episode.index = ep.episode_number
+            episode.season = ep.season_number
             try:
                 airdate = datetime.datetime.strptime(ep.airdate, '%Y-%m-%d')
             except TypeError as e:
