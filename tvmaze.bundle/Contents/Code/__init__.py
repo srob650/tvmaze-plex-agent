@@ -28,7 +28,6 @@ class TVMazeAgent(Agent.TV_Shows):
 
     # Search for YYYY-MM-DD formatted date
     def regex_date(self, filename):
-        Log.Debug(filename)
         re1=('((?:(?:[1]{1}\\d{1}\\d{1}\\d{1})|(?:[2]{1}\\d{3}))[-:\\/.]'
              '(?:[0]?[1-9]|[1][012])[-:\\/.](?:(?:[0-2]?\\d{1})|(?:[3][01]'
              '{1})))(?![\\d])')
@@ -40,7 +39,6 @@ class TVMazeAgent(Agent.TV_Shows):
 
     # Search for S01E01 formatted info
     def regex_sxxexx(self, filename):
-        Log.Debug(filename)
         re1='(S)'
         re2='(\\d+)'
         re3='(E)'
@@ -90,33 +88,41 @@ class TVMazeAgent(Agent.TV_Shows):
 
         # Get main show info
         tvm = pytvmaze.TVMaze()
-        show = tvm.get_show(maze_id=int(metadata.id), embed='episodes')
-        if show:
-            metadata.title = show.name
-            metadata.summary = show.summary
+        show = tvm.get_show(maze_id=int(metadata.id))
+        if not show:
+            return
 
-            # Get poster if it exists
-            if show.image:
-                if show.image.get('medium'):
-                    med_url = show.image.get('medium')
-                    metadata.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
-                if show.image.get('original'):
-                    orig_url = show.image.get('original')
-                    metadata.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
+        metadata.title = show.name
+        metadata.summary = show.summary
 
-        # Get Season posters they exist
-        Log.Debug(media.seasons)
-        Log.Debug('SEASONS: ' + str(media.seasons.keys()))
-        for season_num in media.seasons.keys():
-            Log.Debug('SEASON: ' + season_num)
-            season = metadata.seasons[season_num]
+        # Log.Debug('Metadata: {}'.format(str(metadata)))
+        # Log.Debug('Metadata Dir: {}'.format(str(dir(metadata))))
+        # Log.Debug('Metadata Provider: {}'.format(metadata.provider))
+        # Log.Debug('Media: {}'.format(str(media)))
+        # Log.Debug('Media Dir: {}'.format(str(dir(media))))
 
-            if show[int(season_num)].image:
-                if show[int(season_num)].image.get('medium'):
-                    med_url = show[int(season_num)].image.get('medium')
+
+        # Get poster if it exists
+        if show.image:
+            if show.image.get('medium'):
+                med_url = show.image.get('medium')
+                metadata.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
+            if show.image.get('original'):
+                orig_url = show.image.get('original')
+                metadata.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
+
+
+        # Get season posters they exist
+        seasons = pytvmaze.show_seasons(int(metadata.id))
+        for s in seasons:
+            # Get the season object from the model
+            season = metadata.seasons[seasons[s].season_number]
+            if seasons[int(s)].image:
+                if seasons[int(s)].image.get('medium'):
+                    med_url = seasons[int(s)].image.get('medium')
                     season.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
-                if show[int(season_num)].image.get('original'):
-                    orig_url = show[int(season_num)].image.get('original')
+                if seasons[int(s)].image.get('original'):
+                    orig_url = seasons[int(s)].image.get('original')
                     season.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
             elif show.image:
                 if show.image.get('medium'):
@@ -126,38 +132,22 @@ class TVMazeAgent(Agent.TV_Shows):
                     orig_url = show.image.get('original')
                     season.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
 
-            # Get data for each episode
-            for episode_num in media.seasons[season_num].episodes.keys():
-                episode = metadata.seasons[season_num].episodes[episode_num]
-                episode_media = media.seasons[season_num].episodes[episode_num].items[0]
-                filename = os.path.basename(episode_media.parts[0].file)
+        # Get episode info
+        episodes = pytvmaze.episode_list(metadata.id)
+        for ep in episodes:
+            # Get the episode object from the model
+            episode = metadata.seasons[ep.season_number].episodes[ep.episode_number]
 
-                # Number based shows (S01E01 style)
-                se_ep = self.regex_sxxexx(filename)
-                if se_ep:
-                    Log.Debug('Number based episode scheme')
-                    ep = pytvmaze.episode_by_number(metadata.id,
-                                                    season_num,
-                                                    episode_num)
-
-                # Date based shows
-                date = self.regex_date(filename)
-                if not se_ep and date:
-                    Log.Debug('Date based episode scheme')
-                    ep = pytvmaze.episodes_by_date(metadata.id,
-                                                   date)
-                    if len(ep) >= 1:
-                        ep = ep[0]
-
-
-                # If episode found on tvmaze...update its metadata
-                if ep:
-                    episode.title = ep.title
-                    episode.summary = ep.summary
-                    try:
-                        airdate = datetime.datetime.strptime(ep.airdate, '%Y-%m-%d')
-                    except TypeError as e:
-                        airdate = ep.airdate
-                    episode.originally_available_at = airdate
-                    episode.duration = ep.runtime
-                    episode.season = ep.season_number
+            # Populate metadata attributes
+            episode.show = show.name
+            episode.title = ep.title
+            episode.summary = ep.summary
+            episode.index = episode_num
+            episode.season = season_num
+            try:
+                airdate = datetime.datetime.strptime(ep.airdate, '%Y-%m-%d')
+            except TypeError as e:
+                airdate = ep.airdate
+            episode.originally_available_at = airdate
+            episode.duration = ep.runtime
+            # Add thumbs?

@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 import re
 from datetime import datetime
 import requests
+from requests.packages.urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 from pytvmaze import endpoints
 from pytvmaze.exceptions import *
 
@@ -36,7 +38,7 @@ class Show(object):
             self.network = Network(data.get('network'))
         else:
             self.network = None
-        self.episodes = list()
+        self.__episodes = list()
         self.seasons = dict()
         self.cast = None
         self.__nextepisode = None
@@ -108,14 +110,21 @@ class Show(object):
                 self.__previousepisode = episode_by_id(episode_id)
         return self.__previousepisode
 
+    @property
+    def episodes(self):
+        if not self.__episodes:
+            self.__episodes = episode_list(self.maze_id, specials=True)
+        return self.__episodes
+
+
     def populate(self, data):
         embedded = data.get('_embedded')
         if embedded:
             if embedded.get('episodes'):
                 seasons = show_seasons(self.maze_id)
                 for episode in embedded.get('episodes'):
-                    self.episodes.append(Episode(episode))
-                for episode in self.episodes:
+                    self.__episodes.append(Episode(episode))
+                for episode in self.__episodes:
                     season_num = int(episode.season_number)
                     if season_num not in self.seasons:
                         self.seasons[season_num] = seasons[season_num]
@@ -199,14 +208,21 @@ class Episode(object):
                 self.show = Show(data['_embedded']['show'])
 
     def __repr__(self):
+        if self.special:
+            epnum = 'Special'
+        else:
+            epnum = self.episode_number
         return '<Episode(season={season},episode_number={number})>'.format(
                 season=str(self.season_number).zfill(2),
-                number=str(self.episode_number).zfill(2)
+                number=str(epnum).zfill(2)
         )
 
     def __str__(self):
         season = 'S' + str(self.season_number).zfill(2)
-        episode = 'E' + str(self.episode_number).zfill(2)
+        if self.special:
+            episode = ' Special'
+        else:
+            episode = 'E' + str(self.episode_number).zfill(2)
         return _valid_encoding(season + episode + ' ' + self.title)
 
     def is_special(self):
@@ -311,6 +327,19 @@ class CrewCredit(object):
         if data.get('_embedded'):
             if data['_embedded'].get('show'):
                 self.show = Show(data['_embedded']['show'])
+
+
+class Crew(object):
+    def __init__(self, data):
+        self.person = Person(data.get('person'))
+        self.type = data.get('type')
+
+    def __repr__(self):
+        return _valid_encoding('<Crew(name={name},maze_id={id},type={type})>'.format(
+                name=self.person.name,
+                id=self.person.id,
+                type=self.type
+        ))
 
 
 class Updates(object):
@@ -478,6 +507,8 @@ def _url_quote(show):
 
 
 def _remove_tags(text):
+    if not text:
+        return None
     return re.sub(r'<.*?>', '', text)
 
 
@@ -498,16 +529,23 @@ class TVMaze(object):
     # Query TVMaze free endpoints
     @staticmethod
     def _endpoint_standard_get(url):
+        s = requests.Session()
+        retries = Retry(total=5,
+                        backoff_factor=0.1,
+                        status_forcelist=[429])
+        s.mount('http://', HTTPAdapter(max_retries=retries))
         try:
-            r = requests.get(url)
+            r = s.get(url)
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(repr(e))
+
+        s.close()
 
         if r.status_code in [404, 422]:
             return None
 
         if r.status_code == 400:
-            raise BadRequest('Bad Request for url: {}'.format(url))
+            raise BadRequest('Bad Request for url {}'.format(url))
 
         results = r.json()
         if results:
@@ -517,16 +555,23 @@ class TVMaze(object):
 
     # Query TVMaze Premium endpoints
     def _endpoint_premium_get(self, url):
+        s = requests.Session()
+        retries = Retry(total=5,
+                        backoff_factor=0.1,
+                        status_forcelist=[429])
+        s.mount('http://', HTTPAdapter(max_retries=retries))
         try:
-            r = requests.get(url, auth=(self.username, self.api_key))
+            r = s.get(url, auth=(self.username, self.api_key))
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(repr(e))
+
+        s.close()
 
         if r.status_code in [404, 422]:
             return None
 
         if r.status_code == 400:
-            raise BadRequest('Bad Request for url: {}'.format(url))
+            raise BadRequest('Bad Request for url {}'.format(url))
 
         results = r.json()
         if results:
@@ -535,13 +580,20 @@ class TVMaze(object):
             return None
 
     def _endpoint_premium_delete(self, url):
+        s = requests.Session()
+        retries = Retry(total=5,
+                        backoff_factor=0.1,
+                        status_forcelist=[429])
+        s.mount('http://', HTTPAdapter(max_retries=retries))
         try:
-            r = requests.delete(url, auth=(self.username, self.api_key))
+            r = s.delete(url, auth=(self.username, self.api_key))
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(repr(e))
 
+        s.close()
+
         if r.status_code == 400:
-            raise BadRequest('Bad Request for url: {}'.format(url))
+            raise BadRequest('Bad Request for url {}'.format(url))
 
         if r.status_code == 200:
             return True
@@ -550,13 +602,20 @@ class TVMaze(object):
             return None
 
     def _endpoint_premium_put(self, url, payload=None):
+        s = requests.Session()
+        retries = Retry(total=5,
+                        backoff_factor=0.1,
+                        status_forcelist=[429])
+        s.mount('http://', HTTPAdapter(max_retries=retries))
         try:
-            r = requests.put(url, data=payload, auth=(self.username, self.api_key))
+            r = s.put(url, data=payload, auth=(self.username, self.api_key))
         except requests.exceptions.ConnectionError as e:
             raise ConnectionError(repr(e))
 
+        s.close()
+
         if r.status_code == 400:
-            raise BadRequest('Bad Request for url: {}'.format(url))
+            raise BadRequest('Bad Request for url {}'.format(url))
 
         if r.status_code == 200:
             return True
@@ -1070,7 +1129,7 @@ def people_search(person):
     if q:
         return [Person(person) for person in q]
     else:
-        raise PersonNotFound('Couldn\'t find person: {0}'.format(person))
+        raise PersonNotFound('Couldn\'t find person {0}'.format(person))
 
 def person_main_info(person_id, embed=None):
     if not embed in [None, 'castcredits', 'crewcredits']:
@@ -1083,7 +1142,7 @@ def person_main_info(person_id, embed=None):
     if q:
         return Person(q)
     else:
-        raise PersonNotFound('Couldn\'t find person: {0}'.format(person_id))
+        raise PersonNotFound('Couldn\'t find person {0}'.format(person_id))
 
 def person_cast_credits(person_id, embed=None):
     if not embed in [None, 'show', 'character']:
@@ -1096,7 +1155,7 @@ def person_cast_credits(person_id, embed=None):
     if q:
         return [CastCredit(credit) for credit in q]
     else:
-        raise CreditsNotFound('Couldn\'t find cast credits for person ID: {0}'.format(person_id))
+        raise CreditsNotFound('Couldn\'t find cast credits for person ID {0}'.format(person_id))
 
 def person_crew_credits(person_id, embed=None):
     if not embed in [None, 'show']:
@@ -1109,7 +1168,17 @@ def person_crew_credits(person_id, embed=None):
     if q:
         return [CrewCredit(credit) for credit in q]
     else:
-        raise CreditsNotFound('Couldn\'t find crew credits for person ID: {0}'.format(person_id))
+        raise CreditsNotFound('Couldn\'t find crew credits for person ID {0}'.format(person_id))
+
+
+def get_show_crew(maze_id):
+    url = endpoints.show_crew.format(maze_id)
+    q = TVMaze._endpoint_standard_get(url)
+    if q:
+        return [Crew(crew) for crew in q]
+    else:
+        raise CrewNotFound('Couldn\'t find crew for TVMaze ID {}'.format(maze_id))
+
 
 def show_updates():
     url = endpoints.show_updates
@@ -1125,7 +1194,7 @@ def show_akas(maze_id):
     if q:
         return [AKA(aka) for aka in q]
     else:
-        raise AKASNotFound('Couldn\'t find AKA\'s for TVMaze ID: {0}'.format(maze_id))
+        raise AKASNotFound('Couldn\'t find AKA\'s for TVMaze ID {0}'.format(maze_id))
 
 def show_seasons(maze_id):
     url = endpoints.show_seasons.format(maze_id)
@@ -1136,7 +1205,7 @@ def show_seasons(maze_id):
             season_dict[season['number']] = Season(season)
         return season_dict
     else:
-        raise SeasonNotFound('Couldn\'t find Season\'s for TVMaze ID: {0}'.format(maze_id))
+        raise SeasonNotFound('Couldn\'t find Season\'s for TVMaze ID {0}'.format(maze_id))
 
 def season_by_id(season_id):
     url = endpoints.season_by_id.format(season_id)
@@ -1144,7 +1213,7 @@ def season_by_id(season_id):
     if q:
         return Season(q)
     else:
-        raise SeasonNotFound('Couldn\'t find Season with ID: {0}'.format(season_id))
+        raise SeasonNotFound('Couldn\'t find Season with ID {0}'.format(season_id))
 
 def episode_by_id(episode_id):
     url = endpoints.episode_by_id.format(episode_id)
@@ -1152,4 +1221,4 @@ def episode_by_id(episode_id):
     if q:
         return Episode(q)
     else:
-        raise EpisodeNotFound('Couldn\'t find Episode with ID: {0}'.format(episode_id))
+        raise EpisodeNotFound('Couldn\'t find Episode with ID {0}'.format(episode_id))
