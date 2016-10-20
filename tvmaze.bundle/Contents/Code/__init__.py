@@ -98,10 +98,12 @@ class TVMazeAgent(Agent.TV_Shows):
         if show.image:
             if show.image.get('medium'):
                 med_url = show.image.get('medium')
-                metadata.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
+                if not med_url in metadata.posters.keys():
+                    metadata.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
             if show.image.get('original'):
                 orig_url = show.image.get('original')
-                metadata.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
+                if not orig_url in metadata.posters.keys():
+                    metadata.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
 
         # Get season posters they exist
         seasons = pytvmaze.show_seasons(int(metadata.id))
@@ -111,10 +113,12 @@ class TVMazeAgent(Agent.TV_Shows):
             if seasons[int(s)].image:
                 if seasons[int(s)].image.get('medium'):
                     med_url = seasons[int(s)].image.get('medium')
-                    season.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
+                    if not med_url in season.posters.keys():
+                        season.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
                 if seasons[int(s)].image.get('original'):
                     orig_url = seasons[int(s)].image.get('original')
-                    season.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
+                    if not orig_url in season.posters.keys():
+                        season.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
             elif show.image:
                 if show.image.get('medium'):
                     med_url = show.image.get('medium')
