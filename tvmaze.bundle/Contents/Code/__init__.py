@@ -14,11 +14,11 @@ SUPPORTED_LANGUAGES = [
 
 
 def Start():
-    Log.Debug("Starting TVMaze Agent")
+    Log.Debug("Starting TVmaze Agent")
 
 
-class TVMazeAgent(Agent.TV_Shows):
-    name = "TV Maze"
+class TVmazeAgent(Agent.TV_Shows):
+    name = "TVmaze"
     languages = SUPPORTED_LANGUAGES
     primary_provider = True
     fallback_agent = False
@@ -50,7 +50,7 @@ class TVMazeAgent(Agent.TV_Shows):
 
 
     def search(self, results, media, lang, manual):
-        Log.Debug("Search with TVMazeAgent: " + media.show)
+        Log.Debug("Search with TVmazeAgent: " + media.show)
         shows = pytvmaze.get_show_list(media.show)
         if shows:
             scores = [show.score for show in shows]
@@ -87,7 +87,7 @@ class TVMazeAgent(Agent.TV_Shows):
 
         # Get main show info
         tvm = pytvmaze.TVMaze()
-        show = tvm.get_show(maze_id=int(metadata.id))
+        show = tvm.get_show(maze_id=int(metadata.id), embed='cast')
         if not show:
             return
 
@@ -110,20 +110,45 @@ class TVMazeAgent(Agent.TV_Shows):
         try: metadata.rating = show.rating.get('average')
         except: metadata.rating = None
 
+        # Content Rating - TVmaze doesn't provide content rating, so let's use the show's status (Running, Ended, Cancelled, etc)
+        try: metadata.content_rating = show.status
+        except: metadata.content_rating = None
+
         # Genres
         try: metadata.genres = show.genres
         except: metadata.genres = None
         
-        # Studio
+        # Studio - Add country code?
         try: metadata.studio = show.network.name
         except: metadata.studio = None
+        
+        # Cast
+        try:
+            cast_data = zip(show.cast.people, show.cast.characters)
+            _ = (e for e in cast_data)  # test if cast data is iterable ie not null
+
+            metadata.roles.clear()
+            for person, character in cast_data:
+                try:
+                    role = metadata.roles.new()
+                    role.role = character.name
+                    role.name = person.name
+                    try: # Get the character photo first, if not, fallback to actor photo.
+                        if character.image.get('original'):
+                            orig_url = character.image.get('original')
+                            role.photo = orig_url
+                        elif person.image.get('original'):
+                            orig_url = person.image.get('original')
+                            role.photo = orig_url
+                    except:
+                        role.photo = None
+                except:
+                    pass
+        except AttributeError:
+            pass
 
         # Get poster if it exists
         if show.image:
-            if show.image.get('medium'):
-                med_url = show.image.get('medium')
-                if not med_url in metadata.posters.keys():
-                    metadata.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
             if show.image.get('original'):
                 orig_url = show.image.get('original')
                 if not orig_url in metadata.posters.keys():
@@ -135,18 +160,11 @@ class TVMazeAgent(Agent.TV_Shows):
             # Get the season object from the model
             season = metadata.seasons[seasons[s].season_number]
             if seasons[int(s)].image:
-                if seasons[int(s)].image.get('medium'):
-                    med_url = seasons[int(s)].image.get('medium')
-                    if not med_url in season.posters.keys():
-                        season.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
                 if seasons[int(s)].image.get('original'):
                     orig_url = seasons[int(s)].image.get('original')
                     if not orig_url in season.posters.keys():
                         season.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
             elif show.image:
-                if show.image.get('medium'):
-                    med_url = show.image.get('medium')
-                    season.posters[med_url] = Proxy.Preview(HTTP.Request(med_url).content)
                 if show.image.get('original'):
                     orig_url = show.image.get('original')
                     season.posters[orig_url] = Proxy.Media(HTTP.Request(orig_url).content)
@@ -163,6 +181,7 @@ class TVMazeAgent(Agent.TV_Shows):
             episode.summary = ep.summary
             episode.index = ep.episode_number
             episode.season = ep.season_number
+
             try:
                 airdate = datetime.datetime.strptime(ep.airdate, '%Y-%m-%d')
             except TypeError as e:
