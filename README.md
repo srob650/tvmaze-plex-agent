@@ -1,4 +1,4 @@
-## TVmaze Agent (based on srob650's)
+## TVmaze Plex Agent (based on srob650's)
 
 - Added support for cast with character photo (fallback to actor photo)
 - Added support for episode thumbnails
