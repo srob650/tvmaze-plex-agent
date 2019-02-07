@@ -1,12 +1,6 @@
-## **This Agent is incomplete, I need your help**
+## TVmaze Agent (based on srob650's)
 
-I am posting this here because I would love the help of people who are familiar with Plex metadata agents.  I have just a couple issues I would like to iron out before considering this complete, and of course any other suggestions on what I have are welcome!
-
-~~### **Issue #1:**
-[Line 70 bothers me.](https://github.com/srob650/tvmaze-plex-agent/blob/master/tvmaze.bundle/Contents/Code/__init__.py#L70)  I have tried to use the suggested ```Locale.Language.Unknown``` when a language code is not found, but that results in the Update() method not being called on that show and therefore the show doesn't show up in Plex.  Would love some help with this because defaulting to English doesn't seem right.~~
-*Fixed with 8e61e74*
-
-### **Issue #2:**
-Date-based series (talkshows).  I'm having trouble getting something like "Conan - 2016-01-04.mkv" to show up correctly.  I've had to resort to renaming my talkshows with their season and episode numbers instead to get this agent to work.  I'd love to be able to support the date-based conventions shown [here](https://support.plex.tv/hc/en-us/articles/200381053-Naming-Date-based-TV-Shows).  In my testing, I noticed that some years showed up ok while other entire years of a date-based show didn't show up properly.
-
-### Thanks!
+- Added support for Cast with character photo (fallback to actor photo)
+- Added show's status (Running, Ended, Cancelled, etc) in content rating as TVmaze doesn't provide content rating (TV-MA, TV-14, etc)
+- Renamed all instances of TVMaze to TVmaze as per TVmaze's brand guidelines
+- Removed all instances of medium images as the original will always be there if the medium exist.
