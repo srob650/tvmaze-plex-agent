@@ -119,8 +119,12 @@ class TVmazeAgent(Agent.TV_Shows):
         except: metadata.genres = None
         
         # Studio - Add country code?
-        try: metadata.studio = show.network.name
-        except: metadata.studio = None
+        if show.network:
+            try: metadata.studio = show.network.name
+            except: metadata.studio = None
+        else:
+            try: metadata.studio = show.web_channel.name
+            except: metadata.studio = None
         
         # Cast
         try:
@@ -133,14 +137,12 @@ class TVmazeAgent(Agent.TV_Shows):
                     role = metadata.roles.new()
                     role.role = character.name
                     role.name = person.name
-                    try: # Get the character photo first, if not, fallback to actor photo.
-                        if character.image.get('original'):
-                            orig_url = character.image.get('original')
-                            role.photo = orig_url
-                        elif person.image.get('original'):
-                            orig_url = person.image.get('original')
-                            role.photo = orig_url
-                    except:
+                    # Prefer character over actor photo.
+                    if character.image:
+                        role.photo = character.image.get('original')
+                    elif person.image:
+                        role.photo = person.image.get('original')
+                    else:
                         role.photo = None
                 except:
                     pass
@@ -177,16 +179,30 @@ class TVmazeAgent(Agent.TV_Shows):
 
             # Populate metadata attributes
             episode.show = show.name
-            episode.title = ep.title
-            episode.summary = ep.summary
-            episode.index = ep.episode_number
-            episode.season = ep.season_number
 
-            try:
-                airdate = datetime.datetime.strptime(ep.airdate, '%Y-%m-%d')
-            except TypeError as e:
-                airdate = ep.airdate
-            episode.originally_available_at = airdate
+            # Title
+            try: episode.title = ep.title
+            except: episode.title = None
+
+            # Summary
+            try: episode.summary = ep.summary
+            except: episode.summary = None
+
+            # Season
+            try: episode.season = ep.season_number
+            except: episode.season = None
+
+            # Episode
+            try: episode.index = ep.season_number
+            except: episode.index = None
+
+            # Air date
+            try: airdate = datetime.datetime.strptime(ep.airdate, '%Y-%m-%d')
+            except: airdate = ep.airdate
+            try: episode.originally_available_at = airdate
+            except: episode.originally_available_at = None
+
+            # Duration
             episode.duration = ep.runtime
 
             # Download the episode thumbnail
