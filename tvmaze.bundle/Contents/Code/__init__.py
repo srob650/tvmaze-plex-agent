@@ -122,9 +122,11 @@ class TVmazeAgent(Agent.TV_Shows):
         if show.network:
             try: metadata.studio = show.network.name
             except: metadata.studio = None
-        else:
+        elif show.web_channel:
             try: metadata.studio = show.web_channel.name
             except: metadata.studio = None
+        else:
+            metadata.studio = None
         
         # Cast
         try:
